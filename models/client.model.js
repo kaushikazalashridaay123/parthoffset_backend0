@@ -29,6 +29,10 @@ const clientSchema = new mongoose.Schema(
     officePincode: {
       type: Number,
     },
+    isFactory: {
+      type: Boolean,
+      default: false,
+    },
     factoryAddress: {
       type: String,
     },
