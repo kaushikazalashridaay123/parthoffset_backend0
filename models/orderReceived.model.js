@@ -1,14 +1,5 @@
 const mongoose = require("mongoose");
 
-// Helper function to safely convert "MM/YYYY" to Date
-function parseMonthYear(value) {
-  if (!value || typeof value !== "string") return undefined;
-
-  const [mm, yyyy] = value.split("/").map(Number);
-  if (!mm || !yyyy || mm < 1 || mm > 12) return undefined;
-
-  return new Date(yyyy, mm - 1, 1); // first day of the month
-}
 
 const batchSchema = new mongoose.Schema({
   batchName: {
@@ -74,6 +65,15 @@ const orderReceivedSchema = new mongoose.Schema(
       type: String,
     },
     deliveryAtAddress: {
+      type: String,
+    },
+    consigneeName: {
+      type: String,
+    },
+    consigneeAddress: {
+      type: String,
+    },
+    consigneeGst: {
       type: String,
     },
     totalQuantity: {

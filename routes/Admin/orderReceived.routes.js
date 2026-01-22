@@ -6,6 +6,16 @@ const checkPermission = require("../../middlewares/checkPermission");
 const generateOrderNo = require("../../utils/generateOrderNo");
 const generateSalesOrderNo = require("../../utils/generateSalesOrderNo");
 const createDeleteLog = require("../../utils/createDeleteLog");
+const Client = require("../../models/client.model");
+const Category = require("../../models/category.model");
+const fs = require("fs");
+const path = require("path");
+
+const logFile = path.join(__dirname, "../..", "search_debug.log");
+const log = (msg) => {
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(logFile, `[${timestamp}] ${msg}\n`);
+};
 
 const OrderReceivedRouter = generateCrudRoutes({
   model: OrderReceived,
@@ -14,8 +24,94 @@ const OrderReceivedRouter = generateCrudRoutes({
     beforeCreate: (req, res, next) => {
       checkPermission("orderReceived_create")(req, res, next);
     },
-    beforeGetAll: (req, res, next) => {
-      checkPermission("orderReceived_read")(req, res, next);
+    beforeGetAll: async (req, res, next) => {
+      log(`Incoming request: ${req.url}`);
+      checkPermission("orderReceived_read")(req, res, async () => {
+        const { search, filter } = req.query;
+        if (search && search.trim()) {
+          const q = search.trim();
+          log(`Search triggered for: "${q}"`);
+
+          try {
+            const regex = {
+              $regex: q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+              $options: "i",
+            };
+
+            // Get IDs from joined models
+            const [clientIds, productIds, categoryIds] = await Promise.all([
+              Client.find({
+                $or: [
+                  { clientName: regex },
+                  { mailingName: regex },
+                  { concernPersonName: regex },
+                ],
+              }).distinct("_id"),
+              Product.find({ productName: regex }).distinct("_id"),
+              Category.find({ name: regex }).distinct("_id"),
+            ]);
+
+            log(`Matched IDs - Clients: ${clientIds.length}, Products: ${productIds.length}, Categories: ${categoryIds.length}`);
+
+            // Build $or array dynamically
+            const orConditions = [{ orderNo: regex }, { poNo: regex }];
+
+            // Add Date search if q looks like it might be part of a formatted date
+            orConditions.push({
+              $expr: {
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%d %b, %Y",
+                      date: { $ifNull: ["$date", new Date(0)] },
+                    },
+                  },
+                  regex: q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                  options: "i",
+                },
+              },
+            });
+
+            if (clientIds.length > 0)
+              orConditions.push({ client: { $in: clientIds } });
+            if (productIds.length > 0)
+              orConditions.push({ product: { $in: productIds } });
+            if (categoryIds.length > 0)
+              orConditions.push({ category: { $in: categoryIds } });
+
+            const advancedFilter = { $or: orConditions };
+
+            // Merge with existing filter
+            let currentFilter = {};
+            if (filter) {
+              try {
+                currentFilter =
+                  typeof filter === "string" ? JSON.parse(filter) : filter;
+                log(`Existing filter found: ${JSON.stringify(currentFilter)}`);
+              } catch (e) {
+                log(`Filter parse failed: ${e.message}`);
+                currentFilter = {};
+              }
+            }
+
+            // Combine with $and
+            const finalFilter =
+              Object.keys(currentFilter).length > 0
+                ? { $and: [currentFilter, advancedFilter] }
+                : advancedFilter;
+
+            req.query.filter = JSON.stringify(finalFilter);
+            log(`Final filter applied: ${req.query.filter}`);
+
+            // Clear default search params
+            delete req.query.search;
+            delete req.query.searchFields;
+          } catch (err) {
+            log(`Search Error: ${err.message}`);
+          }
+        }
+        next();
+      });
     },
     beforeGetById: (req, res, next) => {
       checkPermission("orderReceived_read")(req, res, next);
