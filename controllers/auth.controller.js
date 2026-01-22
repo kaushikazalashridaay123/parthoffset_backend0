@@ -18,6 +18,8 @@ const generateRefreshToken = (user) => {
 const login = async (req, res) => {
   try {
     const { userName, password } = req.body;
+    
+    console.log("Login attempt:", { userName, password }); // DEBUG LOG
 
     if (!userName) {
       return res.status(400).json({
@@ -33,7 +35,14 @@ const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ userName });
+    const cleanUserName = userName.trim();
+    console.log("Querying for:", cleanUserName);
+
+    const user = await User.findOne({
+      $or: [{ userName: cleanUserName }, { email: cleanUserName }],
+    });
+    
+    console.log("User found:", user ? user.userName : "NO MATCH");
 
     if (!user) {
       return res.status(400).json({

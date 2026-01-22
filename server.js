@@ -15,7 +15,9 @@ require("dotenv").config();
 const allowedOrigins = [
   "http://localhost:5174",
   "https://beta.parthoffset.printaegis.com",
-  "https://betaapi.parthoffset.printaegis.com"
+  "https://betaapi.parthoffset.printaegis.com",
+  "http://localhost:5176",
+  "http://localhost:5175"
 ];
 
 const corsOptions = {
