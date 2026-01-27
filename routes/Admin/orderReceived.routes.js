@@ -175,6 +175,7 @@ const OrderReceivedRouter = generateCrudRoutes({
             orderReceivedId: existingOrder._id,
             deliveryAt: existingOrder.deliveryAt,
             deliveryAtAddress: existingOrder.deliveryAtAddress,
+            extraNotes: existingOrder.extraNotes,
             batches: existingOrder.batches,
             status: "1",
             createdBy: req.user,

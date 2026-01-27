@@ -59,7 +59,7 @@ app.use("/admin/auth",AuthRouter);
 app.use("/admin",authJWT, AdminRouter);
 
 app.use((req, res) => {
-  res.status(404).send("Route Not Found");
+  res.status(404).json({ message: "Route Not Found", status: false });
 });
 
 const PORT = process.env.PORT || 5000;
