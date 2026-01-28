@@ -457,9 +457,9 @@ JobSheetPreparationRouter.post(
           
           return {
             ...art.toObject(),
-            pesting: sobData?.pesting ?? false,
-            backToBackPesting: sobData?.backToBackPesting ?? false,
-            windowPesting: sobData?.windowPesting ?? false,
+            pesting: sobData?.pesting ?? null,
+            backToBackPesting: sobData?.backToBackPesting ?? null,
+            windowPesting: sobData?.windowPesting ?? null,
           };
         })
       );
